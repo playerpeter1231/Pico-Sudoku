@@ -13,8 +13,11 @@ function copy_data(tab)
 end
 
 function _init()
- --puzzles from puzzleparade, wpf, and various uncredited puzzles from google images
- --title font is gravity pixel font by john watson
+
+ clk = 0
+ hr=0
+ min=0
+ sec=0
  --game data
  g = {
   state = 0,
@@ -23,8 +26,7 @@ function _init()
  }
  --menu data
  m = {
-  state = 0,
-  clk = 0,
+  state = 1,
   sec = 0,
   index = 1
  }
@@ -40,15 +42,18 @@ function _init()
   erase = false
  }
 
-levels={{0,0,4,0,5,0,0,0,0, --level 1
-									9,0,0,7,3,4,6,0,0,
-								 0,0,3,0,2,1,0,4,9,
-								 0,3,5,0,9,0,4,8,0,
-								 0,9,0,0,0,0,0,3,0,
-								 0,7,6,0,1,0,9,2,0,
-								 3,1,0,9,7,0,2,0,0,
-								 0,0,0,1,8,2,0,0,3,
-								 0,0,0,0,6,0,1,0,0},
+
+--puzzles from puzzleparade and the wpf
+--title font is gravity pixel font by john watson
+levels={{6,0,0,0,9,0,0,0,7, --level 1
+									0,4,0,0,0,7,1,0,0,
+								 0,0,2,8,0,0,0,5,0,
+								 8,0,0,0,0,0,0,9,0,
+								 0,0,0,0,7,0,0,0,0,
+								 0,3,0,0,0,0,0,0,8,
+								 0,5,0,0,0,2,3,0,0,
+								 0,0,4,5,0,0,0,2,0,
+								 9,0,0,0,3,0,0,0,4},
         {1,0,0,0,6,0,0,0,9, --level 2
          0,0,2,4,0,0,0,7,0,
          0,3,0,0,0,5,8,0,0,
@@ -130,6 +135,52 @@ levels={{0,0,4,0,5,0,0,0,0, --level 1
          0,0,3,0,0,0,7,0,0,
          0,8,0,0,6,0,0,5,0,
          5,0,0,2,0,3,0,0,9},
+        {0,0,0,0,1,9,8,0,0, --level 11
+         0,4,0,2,0,0,0,0,0,
+         9,0,0,8,0,0,0,0,1,
+         0,0,1,9,0,0,7,0,0,
+         8,0,0,5,0,4,0,0,3,
+         0,0,9,0,0,1,4,0,0,
+         2,0,0,0,0,7,0,0,5,
+         0,0,0,0,0,5,0,9,0,
+         0,0,4,6,3,0,0,0,0},
+        {9,0,0,5,0,3,0,0,6, --level 12
+         0,0,7,0,0,0,5,2,0,
+         5,8,0,0,0,0,0,0,0,
+         0,0,0,0,0,7,9,5,0,
+         0,5,0,1,0,9,0,4,0,
+         0,7,9,2,0,0,0,0,0,
+         0,0,0,0,0,0,0,6,8,
+         0,4,8,0,0,0,7,0,0,
+         0,4,8,0,0,0,7,0,0,
+         7,0,0,3,0,1,0,0,5},
+        {0,0,0,0,7,0,1,9,0, --level 13
+         0,0,0,0,1,0,0,0,6,
+         0,9,4,0,0,8,0,0,5,
+         0,0,0,0,0,0,6,4,7,
+         0,0,0,0,2,0,0,0,0,
+         7,8,1,0,0,0,0,0,0,
+         8,0,0,5,0,0,2,6,0,
+         6,0,0,0,3,0,0,0,0,
+         0,3,2,0,4,0,0,0,0},
+        {0,0,0,0,7,9,0,0,0, --level 14
+         0,2,6,0,0,0,0,0,0,
+         0,0,0,5,0,0,6,0,0,
+         0,0,3,0,0,0,0,0,8,
+         4,0,0,7,0,1,2,0,0,
+         4,0,0,7,0,1,2,0,0,
+         0,0,4,0,9,0,0,5,0,
+         9,0,0,0,6,0,8,7,0,
+         0,3,7,0,0,8,0,0,0}, 
+        {0,0,0,0,7,0,0,1,0, --level 15
+         6,0,0,5,0,0,0,3,0,
+         0,8,1,0,0,4,0,0,6,
+         0,2,0,0,6,0,0,0,0,
+         7,5,0,0,9,0,0,6,8,
+         0,0,0,0,5,0,0,7,0,
+         1,0,0,7,0,0,3,9,0,
+         0,9,0,0,0,6,0,0,5,
+         0,3,0,0,8,0,0,0,0},
 							 {0,0,0,0,0,0,0,0,0, --debug
 								 0,0,0,0,0,0,0,0,0,
 								 0,0,0,0,0,0,0,0,0,
@@ -140,9 +191,14 @@ levels={{0,0,4,0,5,0,0,0,0, --level 1
 									0,0,0,0,0,0,0,0,0,
 									0,0,0,0,0,0,0,0,0}}
 
+ done={}
+ for i=0, 14 do
+  add(done,false)
+ end
+
 	--starting points for grid
 	gridx = 7
-	gridy = 5
+	gridy = 10
 	--cell size
 	csize = 10
 	--inner and outer margin size
@@ -164,6 +220,7 @@ function game_init()
  --load level info into current dat var
  dat = copy_data(levels[g.level])
 
+ clk = 0
  err={}
 
  g.state = 1
@@ -198,7 +255,7 @@ function menu_update()
   end
 
   if(btnp(5)) then
-   m.clk = 0
+   clk = 0
    m.state = 0
   end
  end
@@ -299,10 +356,20 @@ function check_error(ind,dig,log)
  else
   if(not log) del(err, ind)
  end
+
+ if(count == 0) then
+  win = true
+  for e in all(dat) do
+   if(e == 0) win = false
+  end
+  if(err != nil) win = false
+  if(win) done[m.index] = true
+ end
 end
 
 function _draw()
  cls(1)
+ clk += 1
 
  if(g.state == 0) then
   menu_draw()
@@ -312,12 +379,11 @@ function _draw()
 end
 
 function menu_draw()
- m.clk += 1
  wig = 0
- if(m.clk < 40) then wig = cos(m.clk/155)*10
+ if(clk < 40) then wig = cos(clk/155)*10
  else 
-  if(m.clk%25 == 0) m.sec+=1
-  if(m.sec%2 == 1) wig = 0-(m.clk%25)/25
+  if(clk%25 == 0) m.sec+=1
+  if(m.sec%2 == 1) wig = 0-(clk%25)/25
  end
  
  --splash screen
@@ -340,15 +406,21 @@ function menu_draw()
  --draw level select
  elseif(m.state == 1) then
 
-  tempx = (m.index-1)%3*32+22
-  tempy = (flr((m.index-1)/3)+1)*20-14
-  rectfill(tempx,tempy,tempx+20,tempy+20,8)
+  if(m.index < 16) then
+   tempx = (m.index-1)%3*32+22
+   tempy = (flr((m.index-1)/3)+1)*20-14
+   rectfill(tempx,tempy,tempx+20,tempy+20,8)
+  else
+   rectfill(38,110,90,122,8)
+  end
 
   pal(5,7)
   for i=0,14 do
+   levcol = 0
    tempx = (i%3*32)+24
    tempy = (flr(i/3)+1)*20-12
-   rectfill(tempx,tempy,tempx+16,tempy+16,0)
+   if(done[i+1]) levcol = 11
+   rectfill(tempx,tempy,tempx+16,tempy+16,levcol)
    spr(i+1,tempx+4,tempy+4)
   end
   pal(5,5)
@@ -358,9 +430,26 @@ function menu_draw()
  end
 end
 
+function check_clock(time)
+ if(tonum(time) < 0) then time = "00"
+ elseif(tonum(time) < 10) then time = "0"..time end
+ return time
+end
+
 function game_draw()
  --draw black border and internal lines
- rectfill(gridx-2,gridy-3,gridx+gsize+2,gridx+gsize+1,0)
+ rectfill(gridx-2,gridy-2,gridx+gsize+2,gridy+gsize+2,0)
+
+ --draw timer
+ if(done[g.level] == false) then
+  hr = tostr(flr(clk/108000))
+  min = tostr(flr(clk/1800)%60)
+  sec = tostr(flr(clk/30)%60)
+  hr = check_clock(hr)
+  min = check_clock(min)
+  sec = check_clock(sec)
+ end
+ print("time: "..hr..":"..min..":"..sec,68,2,7)
 
  --draw backround lines
  for i=0,8 do
@@ -443,6 +532,10 @@ function game_draw()
    spr(i+27,i*cmarg*2+33,tempy+24)
   end
   if(p.erase) rect(58,tempy+22,68,tempy+32,11)
+ end
+
+ if (done[g.level] == true) then
+  print("nice job!",gridx-1,2,11)
  end
 end
 
