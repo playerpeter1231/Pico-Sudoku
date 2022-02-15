@@ -12,6 +12,12 @@ function copy_data(tab)
  return copy
 end
 
+function erase_data(tab)
+ for k in all(tab) do
+  k = 0
+ end
+end
+
 function _init()
 
  clk = 0
@@ -38,8 +44,10 @@ function _init()
   index = 1,
   num = 1,
   mindex = 1,
+  bit = 1,
   menu = false,
-  erase = false
+  erase = false,
+  note = false
  }
 
 
@@ -191,16 +199,26 @@ levels={{6,0,0,0,9,0,0,0,7, --level 1
 									0,0,0,0,0,0,0,0,0,
 									0,0,0,0,0,0,0,0,0}}
 
+ note={0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0,
+       0,0,0,0,0,0,0,0,0}
+
  done={}
  for i=0, 14 do
   add(done,false)
  end
 
 	--starting points for grid
-	gridx = 7
+	gridx = 11
 	gridy = 10
 	--cell size
-	csize = 10
+	csize = 9
 	--inner and outer margin size
 	inmarg = 3
  outmarg = 2
@@ -219,6 +237,7 @@ end
 function game_init()
  --load level info into current dat var
  dat = copy_data(levels[g.level])
+ erase_data(note)
 
  clk = 0
  err={}
@@ -272,20 +291,33 @@ function game_update()
   if(btnp(2) and p.y>1) p.y-=1
   if(btnp(3) and p.y<9) p.y+=1 
 
-  --face buttons
+  --action button
   if(btnp(4) and levels[g.level][p.index] == 0) then
-   dat[p.index] = p.num
 
-   --erase current element
-   if(p.erase) then dat[p.index] = 0
-   else check_error(p.index,dat[p.index],true) end
+   --note mode
+   if(p.note) then
+    if(p.erase) then
+     del(note[p.index],p.num)
+    else
+     note[p.index] = note[p.index] | p.bit
+    end
+   --standard erase mode
+   elseif(p.erase) then 
+    dat[p.index] = 0
+    for e in all(err) do
+     if(dat[e] != 0) then 
+      check_error(e,dat[e],false)
+     else del(err,e) end
+    end
+   --standard add number
+   else 
+    dat[p.index] = p.num
 
-   for e in all(err) do
-    if(dat[e] != 0) then 
-     check_error(e,dat[e],false)
-    else del(err,e) end
+    check_error(p.index,dat[p.index],true) 
    end
+
   end
+  --menu button
   if(btnp(5)) p.menu = true
 
  --in menu
@@ -298,9 +330,15 @@ function game_update()
 
   if(btnp(4))then 
   	if(p.mindex<10)then
+    --set note bit by moving bit left or right
+    tempb = p.mindex - p.num
+    p.bit = p.bit << tempb
+
   		p.num = p.mindex
     p.erase = false
   		p.menu = false
+   elseif(p.mindex==10)then
+    p.note = not p.note
   	elseif(p.mindex==11)then
   		p.erase = not p.erase
     if(p.erase) p.menu = false
@@ -338,7 +376,7 @@ function check_error(ind,dig,log)
 	end
 
  --cubes
-	box = ind-(((ind-1)%3)+(flr(ind/9)%3)*9)
+	box = ind-(((ind-1)%3)+(ind\9)%3)*9
 	for i=0,2 do
   cell = box
 		for j=0,2 do
@@ -408,7 +446,7 @@ function menu_draw()
 
   if(m.index < 16) then
    tempx = (m.index-1)%3*32+22
-   tempy = (flr((m.index-1)/3)+1)*20-14
+   tempy = ((m.index-1)\3+1)*20-14
    rectfill(tempx,tempy,tempx+20,tempy+20,8)
   else
    rectfill(38,110,90,122,8)
@@ -418,7 +456,7 @@ function menu_draw()
   for i=0,14 do
    levcol = 0
    tempx = (i%3*32)+24
-   tempy = (flr(i/3)+1)*20-12
+   tempy = (i\3+1)*20-12
    if(done[i+1]) levcol = 11
    rectfill(tempx,tempy,tempx+16,tempy+16,levcol)
    spr(i+1,tempx+4,tempy+4)
@@ -442,19 +480,19 @@ function game_draw()
 
  --draw timer
  if(done[g.level] == false) then
-  hr = tostr(flr(clk/108000))
-  min = tostr(flr(clk/1800)%60)
-  sec = tostr(flr(clk/30)%60)
+  hr = tostr(clk\108000)
+  min = tostr(clk\1800)%60
+  sec = tostr(clk\30)%60
   hr = check_clock(hr)
   min = check_clock(min)
   sec = check_clock(sec)
  end
- print("time: "..hr..":"..min..":"..sec,68,2,7)
+ print("time: "..hr..":"..min..":"..sec,64,2,7)
 
  --draw backround lines
  for i=0,8 do
   tempx = i%3*cmarg*3+gridx
-  tempy = flr(i/3)*cmarg*3+gridy
+  tempy = i\3*cmarg*3+gridy
   rectfill(tempx,tempy,tempx+ssize,tempy+ssize,13)
  end
  
@@ -466,7 +504,7 @@ function game_draw()
  --create all cells
  for i=0,80 do 
   xmod = i%9
-  ymod = flr(i/9)
+  ymod = i\9
   tempx = xmod*cmarg+gridx
   tempy = ymod*cmarg+gridy
 
@@ -474,23 +512,38 @@ function game_draw()
   rectfill(tempx,tempy,tempx+csize,tempy+csize,15)
 
   --draw num sprites from dat table
-  pal(5,5)
+
   spr(dat[i+1],tempx+1,tempy+1)
 
-  pal(5,0)
+  --draw level sprites on top with a diff color
+  pal(5,1)
   spr(levels[g.level][i+1],tempx+1,tempy+1)
+  pal(5,5)
+
+
+
+  --draw notes by checking through the bits for stored values
+  checkbit = 1
+  for j=0,8 do
+   nxmod = j%3*4
+   nymod = j\3*4
+   if (note[i+1]&checkbit == checkbit) then
+    rectfill(tempx+nxmod,tempy+nymod,tempx+nxmod+1,tempy+nymod+1,5)
+   end
+   checkbit = checkbit << 1
+  end
  end
 
  --draw errors
  pal(5,8)
  for e in all(err) do
   xmod = (e-1)%9
-  ymod = flr((e-1)/9)
+  ymod = (e-1)\9
   tempx = xmod*cmarg+gridx
   tempy = ymod*cmarg+gridy
   spr(dat[e],tempx+1,tempy+1)
-
  end
+
  pal(5,5)
 
  --display num menu
@@ -509,30 +562,36 @@ function game_draw()
 
   --player selection
   if(p.mindex < 10) then
-   tempx = (p.mindex-1)*cmarg+4
-   rectfill(tempx,tempy+6,tempx+14,tempy+20,p.col)
+   tempx = (p.mindex-1)*cmarg+1
+   rectfill(tempx+1,tempy+5,tempx+15,tempy+19,p.col)
   else
-   tempx = (p.mindex-10)*cmarg*2+30
-   rectfill(tempx,tempy+20,tempx+14,tempy+34,p.col)
+   tempx = (p.mindex-9)*cmarg*2+30
+   rectfill(tempx-24,tempy+20,tempx-10,tempy+34,p.col)
    --print(tempx,20,116,7)
   end
 
+  
   --num options
   pal(5,0)
   for i=0,8 do
-   rectfill(i*cmarg+6,tempy+8,i*cmarg+16,tempy+18,15)
-   spr(i+1,i*cmarg+7,tempy+10)
+   tempx = cmarg + 1
+   rectfill(i*tempx+6,tempy+7,i*tempx+15,tempy+16,15)
+   spr(i+1,i*tempx+7,tempy+9)
    --print(p.mindex,50,118,7)
   end
   pal(5,5)
 
   --menu options
   for i=0,2 do
-   rectfill(i*cmarg*2+32,tempy+22,i*cmarg*2+42,tempy+32,15)
-   spr(i+27,i*cmarg*2+33,tempy+24)
+   rectfill(i*cmarg*2+34,tempy+22,i*cmarg*2+43,tempy+31,15)
+   spr(i+27,i*cmarg*2+35,tempy+24)
   end
+  if(p.note) rect(32,tempy+22,42,tempy+32,11)
   if(p.erase) rect(58,tempy+22,68,tempy+32,11)
  end
+
+ print(p.mindex..p.num,50,50,7)
+ print(p.bit,50,58,7)
 
  if (done[g.level] == true) then
   print("nice job!",gridx-1,2,11)
@@ -541,28 +600,28 @@ end
 
 __gfx__
 eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-eeeeeeeeeeee5eeeeeee55eeeeee55eeeeeee5eeeee5555eeeee555eeee5555eeee555eeeee555eeee5ee55eee5ee5eeee5ee55eee5ee55eee5eee5eee5e5555
-eeeeeeeeeee55eeeeee5ee5eeee5ee5eeeee55eeeee5eeeeeee5eeeeeeeeee5eee5eee5eee5eee5eee5e5ee5ee5ee5eeee5e5ee5ee5e5ee5ee5ee55eee5e5eee
-eeeeeeeeee5e5eeeee5eee5eeeeee5eeeee5e5eeeee555eeeee555eeeeeeee5eeee555eeee5eee5eee5e5ee5ee5ee5eeee5eeee5ee5eee5eee5e5e5eee5e555e
-eeeeeeeeeeee5eeeeeeee5eeeeeeee5eee55555eeeeeee5eee5eee5eeeeee5eeeee5ee5eeee5555eee5e5ee5ee5ee5eeee5eee5eee5eeee5ee5e5555ee5eeee5
-eeeeeeeeeeee5eeeeeee5eeeeeeeee5eeeeee5eeee5eee5eee5eee5eeeee5eeeee5eee5eeeeeee5eee5e5ee5ee5ee5eeee5ee5eeee5e5ee5ee5eee5eee5e5ee5
-eeeeeeeeee55555eee55555eeee555eeeeeee5eeeee555eeeee555eeeee5eeeeeee555eeeee555eeee5ee55eee5ee5eeee5e5555ee5ee55eee5eee5eee5ee55e
+eeeeeeeeeeee5eeeeee55eeeeee55eeeeeee5eeeee5555eeeee555eeee5555eeee555eeeee555eeee5ee55eee5ee5eeee5ee55eee5ee55eee5eee5eee5e5555e
+eeeeeeeeeee55eeeee5ee5eeee5ee5eeeee55eeeee5eeeeeee5eeeeeeeeee5eee5eee5eee5eee5eee5e5ee5ee5ee5eeee5e5ee5ee5e5ee5ee5ee55eee5e5eeee
+eeeeeeeeee5e5eeeeeeee5eeeeee5eeeee5e5eeeee555eeeee555eeeeeeee5eeee555eeee5eee5eee5e5ee5ee5ee5eeee5eeee5ee5eee5eee5e5e5eee5e555ee
+eeeeeeeeeeee5eeeeeee5eeeeeeee5eee55555eeeeeee5eee5eee5eeeeee5eeeee5ee5eeee5555eee5e5ee5ee5ee5eeee5eee5eee5eeee5ee5e5555ee5eeee5e
+eeeeeeeeeeee5eeeeee5eeeeeeeee5eeeeee5eeee5eee5eee5eee5eeeee5eeeee5eee5eeeeeee5eee5e5ee5ee5ee5eeee5ee5eeee5e5ee5ee5eee5eee5e5ee5e
+eeeeeeeeee5555eeee5555eeee555eeeeeee5eeeee555eeeee555eeeee5eeeeeee555eeeee555eeee5ee55eee5ee5eeee5e5555ee5ee55eee5eee5eee5ee55ee
 eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 00000000eeeee7777e77ee77e7777eeee777777ee77ee77e77ee77eeeeeeeeeeeeeeeeeeeeeeee5eeeeee000eeeee00eee00000eeee000ee0000000000000000
 00000000eeee77777e77ee77e77777ee77777777e77ee77e77ee77eeeeeeeeeeeeeeeeeeeeeee5ee5eeee000eeee0000e00eee00ee00000e0000000000000000
 00000000eee77eeeee77ee77e77e777e77eeee77e77ee77e77ee77eeeeeeeeee77799eeeeeeee5eee5eee000eee00000e0e0e0e0e00000000000000000000000
 00000000eee777777e77ee77e77ee77e77eeee77e77777ee77ee77eeeeeee777774499eeeeeeee5e5eeee000ee00000ee0ee0ee0eeeeeeee0000000000000000
 00000000eee777777e77ee77e77ee77e77eeee77e77777ee77ee77eeee7777777999497eeeeeeeeeeeeee000eee000eee0e0e0e0ee00000e0000000000000000
-00000000eeeeeee77e77ee77e77ee77e77eeee77e77ee77e77ee77eee77777774499477eeeee7776666ee000e0ee0eeee00eee00ee00e00e0000000000000000
-00000000eee77777ee77777ee777777e77777777e77ee77e77777eeee777d77999497777ee7744444446e000e00eeeeeee00000eee00e00e0000000000000000
-00000000eee7777eee7777eee777777ee777777ee77ee77e7777eeeee777dd7ff9477777e644444445556000eeeeeeeeeeeeeeeeeeeeeeee0000000000000000
-00000000000000000000000000000000000000000000000000000000e7777775f9777777e6544445555560000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000ee7777d7777dd777e7655555555660000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000ee7777dd77dd777777766666666760000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000ee77777dddd77d7777777777777760000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000ee7777777777dd7777767777777760000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000eee77d777777777777677777777760000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000eee77d7d77777777e7676777776650000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000eee7777777777eeeee677676665550000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000eee7777777eeeeeeee5665555555e0000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000eeee777eeeeeeeeeeee55555555ee0000000000000000000000000000000000000000000
+00000000eeeeeee77e77ee77e77ee77e77eeee77e77ee77e77ee77eee777777744994d7eeeee7776666ee000e0ee0eeee00eee00ee00e00e0000000000000000
+00000000eee77777ee77777ee777777e77777777e77ee77e77777eeee77757799949d776ee7744444446e000e00eeeeeee00000eee00e00e0000000000000000
+00000000eee7777eee7777eee777777ee777777ee77ee77e7777eeeee777557ff94d7776e644444445556000eeeeeeeeeeeeeeeeeeeeeeee0000000000000000
+00000000000000000000000000000000000000000000000000000000e7777775f9d77776e6544445555560000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000ee77775777755776e7655555555660000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000ee7777557755777767766666666760000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000ee7777755557757767777777777760000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000ee7777777777557767767777777760000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000eee775777777777767677777777760000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000eee7757577777666e7676777776650000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000eee7777777666eeeee677676665550000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000eee7777666eeeeeeee5665555555e0000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000eeee666eeeeeeeeeeee55555555ee0000000000000000000000000000000000000000000
